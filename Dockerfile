@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v6
+ARG CACHE_BUST=v7
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -56,17 +56,20 @@ RUN cd /build/modpack && \
         echo "ERROR: No modrinth.index.json found!"; \
     fi
 
-# Copy config files from modpack  
+# Copy config files from modpack with proper permissions
 RUN if [ -d "/build/modpack/config" ]; then \
         echo "=== COPYING CONFIG FROM MODPACK ===" && \
-        cp -r /build/modpack/config/* /build/server/config/; \
+        cp -r /build/modpack/config/* /build/server/config/ && \
+        chmod -R 755 /build/server/config/ && \
+        echo "Config files copied with proper permissions"; \
     fi
 
-# Copy overrides if they exist
+# Copy overrides if they exist with proper permissions
 RUN if [ -d "/build/modpack/overrides" ]; then \
         echo "=== COPYING OVERRIDES ===" && \
         cp -r /build/modpack/overrides/* /build/server/ && \
-        echo "Overrides copied successfully"; \
+        chmod -R 755 /build/server/ && \
+        echo "Overrides copied successfully with proper permissions"; \
     fi
 
 # Final verification
@@ -90,21 +93,23 @@ RUN apt-get update && \
     apt-get install -y curl wget && \
     rm -rf /var/lib/apt/lists/*
 
-# Create minecraft user and directory
-RUN useradd -m -d /minecraft minecraft
+# Create minecraft user and directory with proper permissions
+RUN useradd -m -d /minecraft minecraft && \
+    mkdir -p /minecraft/config /minecraft/mods /minecraft/world && \
+    chown -R minecraft:minecraft /minecraft
 WORKDIR /minecraft
 
-# Copy Fabric server jar
-COPY --from=builder /build/fabric-installer.jar ./server.jar
+# Copy Fabric server jar with proper ownership
+COPY --from=builder --chown=minecraft:minecraft /build/fabric-installer.jar ./server.jar
 
-# Copy all server files including mods
-COPY --from=builder /build/server/ ./
+# Copy all server files including mods with proper ownership
+COPY --from=builder --chown=minecraft:minecraft /build/server/ ./
 
-# Ensure proper directory structure
-RUN mkdir -p mods config world logs crash-reports
-
-# Set proper permissions
-RUN chown -R minecraft:minecraft /minecraft
+# Ensure proper directory structure and permissions
+RUN mkdir -p mods config world logs crash-reports && \
+    chmod -R 755 /minecraft && \
+    chmod -R 644 /minecraft/config/* 2>/dev/null || true && \
+    chmod -R 755 /minecraft/mods 2>/dev/null || true
 
 # Switch to minecraft user
 USER minecraft
