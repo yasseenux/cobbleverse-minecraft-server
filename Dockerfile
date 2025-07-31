@@ -4,9 +4,9 @@ FROM openjdk:21-jdk-slim as builder
 # Set working directory
 WORKDIR /build
 
-# Install required packages
+# Install required packages including jq for JSON parsing
 RUN apt-get update && \
-    apt-get install -y wget curl unzip && \
+    apt-get install -y wget curl unzip jq && \
     rm -rf /var/lib/apt/lists/*
 
 # Download Fabric installer
@@ -21,12 +21,47 @@ RUN mkdir -p /build/modpack
 # Extract modpack (mrpack is a zip file)
 RUN cd /build/modpack && unzip ../cobbleverse.mrpack
 
+# Debug: Show what was extracted
+RUN echo "=== MODPACK CONTENTS ===" && ls -la /build/modpack/
+
+# Parse modrinth.index.json to get mod download URLs
+RUN cd /build/modpack && \
+    if [ -f "modrinth.index.json" ]; then \
+        echo "=== PARSING MODRINTH INDEX ===" && \
+        jq -r '.files[] | select(.path | startswith("mods/")) | .downloads[0]' modrinth.index.json > mod_urls.txt && \
+        jq -r '.files[] | select(.path | startswith("mods/")) | .path' modrinth.index.json > mod_paths.txt && \
+        echo "Found $(wc -l < mod_urls.txt) mods to download"; \
+    fi
+
+# Create mods directory and download all mods
+RUN mkdir -p /build/server/mods && \
+    cd /build/modpack && \
+    if [ -f "mod_urls.txt" ]; then \
+        echo "=== DOWNLOADING MODS ===" && \
+        paste mod_urls.txt mod_paths.txt | while IFS=$'\t' read -r url path; do \
+            filename=$(basename "$path") && \
+            echo "Downloading: $filename" && \
+            wget -q -O "/build/server/$path" "$url" || echo "Failed to download $filename"; \
+        done; \
+    fi
+
+# Copy overrides if they exist
+RUN if [ -d "/build/modpack/overrides" ]; then \
+        echo "=== COPYING OVERRIDES ===" && \
+        cp -r /build/modpack/overrides/* /build/server/ 2>/dev/null || true; \
+    fi
+
+# Verify mods were downloaded
+RUN echo "=== FINAL MOD COUNT ===" && \
+    ls -la /build/server/mods/ | wc -l && \
+    ls /build/server/mods/ | head -10
+
 # Production stage
 FROM openjdk:21-jdk-slim
 
 # Install required packages
 RUN apt-get update && \
-    apt-get install -y curl wget jq && \
+    apt-get install -y curl wget && \
     rm -rf /var/lib/apt/lists/*
 
 # Create minecraft user and directory
@@ -36,10 +71,10 @@ WORKDIR /minecraft
 # Copy Fabric server jar
 COPY --from=builder /build/fabric-installer.jar ./server.jar
 
-# Copy modpack files
-COPY --from=builder /build/modpack ./
+# Copy all server files including mods
+COPY --from=builder /build/server/ ./
 
-# Create necessary directories
+# Ensure proper directory structure
 RUN mkdir -p mods config world logs crash-reports
 
 # Set proper permissions
