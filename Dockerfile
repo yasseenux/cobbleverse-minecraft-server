@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v4
+ARG CACHE_BUST=v5
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -30,21 +30,28 @@ RUN echo "=== MODPACK CONTENTS ===" && ls -la /build/modpack/
 # Create server directory structure
 RUN mkdir -p /build/server/mods /build/server/config
 
-# Process modrinth.index.json to download mods
+# Process modrinth.index.json to download mods (excluding client-side mods)
 RUN cd /build/modpack && \
     if [ -f "modrinth.index.json" ]; then \
         echo "=== FOUND MODRINTH INDEX ===" && \
         echo "Processing mod downloads from index..." && \
+        # Client-side mods to exclude (known problematic for servers)
+        EXCLUDE_MODS="modernfix|sodium|iris|continuity|immediatelyfast|moreculling|betterf3|zoomify|reeses-sodium-options|sodium-extra|sodiumoptionsapi|sodiumdynamiclights|entity_model_features|entity_texture_features|modmenu|betterbeds|mousetweaks|customsplashscreen|particlerain|brb|tooltipfix|controlling|searchables|betterthirdperson|resourcepackoverrides|particular|infinite-music|drop_confirm|euphoria_patcher|musicnotification|advancementplaques" && \
         jq -c '.files[] | select(.path | startswith("mods/")) | {path: .path, url: .downloads[0]}' modrinth.index.json | \
         while IFS= read -r line; do \
             path=$(echo "$line" | jq -r '.path') && \
             url=$(echo "$line" | jq -r '.url') && \
             filename=$(basename "$path") && \
-            echo "Downloading: $filename" && \
-            mkdir -p "/build/server/$(dirname "$path")" && \
-            wget -q --timeout=30 "$url" -O "/build/server/$path" || echo "Failed: $filename"; \
+            # Skip client-side mods \
+            if echo "$filename" | grep -qE "$EXCLUDE_MODS"; then \
+                echo "SKIPPING client-side mod: $filename"; \
+            else \
+                echo "Downloading: $filename" && \
+                mkdir -p "/build/server/$(dirname "$path")" && \
+                wget -q --timeout=30 "$url" -O "/build/server/$path" || echo "Failed: $filename"; \
+            fi; \
         done && \
-        echo "Mod download complete. Found: $(ls /build/server/mods/ | wc -l) mods"; \
+        echo "Mod download complete. Server mods found: $(ls /build/server/mods/ | wc -l)"; \
     else \
         echo "ERROR: No modrinth.index.json found!"; \
     fi
