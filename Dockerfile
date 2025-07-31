@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v11
+ARG CACHE_BUST=v12
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -123,6 +123,7 @@ echo "eula=true" > eula.txt\n\
 if [ ! -f server.properties ]; then\n\
     echo "Creating default server.properties..."\n\
     cat > server.properties << EOF\n\
+server-ip=0.0.0.0\n\
 server-port=8080\n\
 gamemode=survival\n\
 difficulty=normal\n\
