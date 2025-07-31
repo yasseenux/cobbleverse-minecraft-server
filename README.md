@@ -14,6 +14,8 @@ A Dockerized Minecraft server running the Cobbleverse modpack v1.5.2 with Fabric
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/cobbleverse-minecraft)
 
+**Note: Updated with direct mod copying from modpack for better reliability!**
+
 ## Manual Deployment
 
 ### Prerequisites
