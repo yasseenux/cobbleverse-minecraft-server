@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v7
+ARG CACHE_BUST=v8
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -105,10 +105,10 @@ COPY --from=builder --chown=minecraft:minecraft /build/fabric-installer.jar ./se
 # Copy all server files including mods with proper ownership
 COPY --from=builder --chown=minecraft:minecraft /build/server/ ./
 
-# Ensure proper directory structure and permissions
+# Ensure proper directory structure and full write permissions for config
 RUN mkdir -p mods config world logs crash-reports && \
     chmod -R 755 /minecraft && \
-    chmod -R 644 /minecraft/config/* 2>/dev/null || true && \
+    chmod -R 775 /minecraft/config 2>/dev/null || true && \
     chmod -R 755 /minecraft/mods 2>/dev/null || true
 
 # Switch to minecraft user
