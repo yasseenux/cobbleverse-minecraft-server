@@ -26,35 +26,66 @@ RUN echo "=== MODPACK CONTENTS ===" && ls -la /build/modpack/
 
 # Parse modrinth.index.json to get mod download URLs
 RUN cd /build/modpack && \
+    echo "=== CHECKING FOR MODRINTH INDEX ===" && \
+    ls -la && \
     if [ -f "modrinth.index.json" ]; then \
         echo "=== PARSING MODRINTH INDEX ===" && \
+        cat modrinth.index.json | jq '.' | head -20 && \
         jq -r '.files[] | select(.path | startswith("mods/")) | .downloads[0]' modrinth.index.json > mod_urls.txt && \
         jq -r '.files[] | select(.path | startswith("mods/")) | .path' modrinth.index.json > mod_paths.txt && \
-        echo "Found $(wc -l < mod_urls.txt) mods to download"; \
+        echo "Found $(wc -l < mod_urls.txt) mods to download" && \
+        echo "First 5 URLs:" && head -5 mod_urls.txt; \
+    else \
+        echo "ERROR: modrinth.index.json not found!" && \
+        echo "Available files:" && ls -la; \
     fi
 
 # Create mods directory and download all mods
 RUN mkdir -p /build/server/mods && \
     cd /build/modpack && \
-    if [ -f "mod_urls.txt" ]; then \
+    if [ -f "mod_urls.txt" ] && [ -s "mod_urls.txt" ]; then \
         echo "=== DOWNLOADING MODS ===" && \
         paste mod_urls.txt mod_paths.txt | while IFS=$'\t' read -r url path; do \
             filename=$(basename "$path") && \
-            echo "Downloading: $filename" && \
-            wget -q -O "/build/server/$path" "$url" || echo "Failed to download $filename"; \
-        done; \
+            echo "Downloading: $filename from $url" && \
+            wget -q --timeout=30 -O "/build/server/$path" "$url" && echo "✓ $filename" || echo "✗ Failed: $filename"; \
+        done && \
+        echo "=== DOWNLOAD COMPLETE ===" && \
+        echo "Mods downloaded: $(ls /build/server/mods/ | wc -l)"; \
+    else \
+        echo "ERROR: No mod URLs found - will try alternative method" && \
+        if [ -d "mods" ]; then \
+            echo "Copying mods from modpack mods directory..." && \
+            cp -r mods/* /build/server/mods/ 2>/dev/null || echo "No mods found in mods directory"; \
+        fi; \
     fi
 
 # Copy overrides if they exist
 RUN if [ -d "/build/modpack/overrides" ]; then \
         echo "=== COPYING OVERRIDES ===" && \
-        cp -r /build/modpack/overrides/* /build/server/ 2>/dev/null || true; \
+        cp -r /build/modpack/overrides/* /build/server/ 2>/dev/null || true && \
+        echo "Overrides copied successfully"; \
+    else \
+        echo "No overrides directory found"; \
     fi
 
-# Verify mods were downloaded
+# Alternative: Try to find and copy any existing mods
+RUN echo "=== LOOKING FOR EXISTING MODS ===" && \
+    find /build/modpack -name "*.jar" -type f | head -10 && \
+    find /build/modpack -name "*.jar" -type f -exec cp {} /build/server/mods/ \; 2>/dev/null || true
+
+# Verify mods were downloaded/copied
 RUN echo "=== FINAL MOD COUNT ===" && \
-    ls -la /build/server/mods/ | wc -l && \
-    ls /build/server/mods/ | head -10
+    mod_count=$(ls /build/server/mods/ 2>/dev/null | wc -l) && \
+    echo "Total mods found: $mod_count" && \
+    if [ "$mod_count" -gt 0 ]; then \
+        echo "✓ SUCCESS: Mods found!" && \
+        ls /build/server/mods/ | head -10; \
+    else \
+        echo "✗ WARNING: No mods found - server will run vanilla Fabric only" && \
+        echo "Contents of modpack:" && \
+        find /build/modpack -type f -name "*.jar" | head -5; \
+    fi
 
 # Production stage
 FROM openjdk:21-jdk-slim
