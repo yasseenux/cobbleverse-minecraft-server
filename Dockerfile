@@ -4,6 +4,9 @@ FROM openjdk:21-jdk-slim as builder
 # Set working directory
 WORKDIR /build
 
+# Cache buster - force rebuild
+ARG CACHE_BUST=v2
+
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
     apt-get install -y wget curl unzip jq && \
