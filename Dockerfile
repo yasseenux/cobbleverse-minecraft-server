@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v5
+ARG CACHE_BUST=v6
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -36,7 +36,7 @@ RUN cd /build/modpack && \
         echo "=== FOUND MODRINTH INDEX ===" && \
         echo "Processing mod downloads from index..." && \
         # Client-side mods to exclude (known problematic for servers)
-        EXCLUDE_MODS="modernfix|sodium|iris|continuity|immediatelyfast|moreculling|betterf3|zoomify|reeses-sodium-options|sodium-extra|sodiumoptionsapi|sodiumdynamiclights|entity_model_features|entity_texture_features|modmenu|betterbeds|mousetweaks|customsplashscreen|particlerain|brb|tooltipfix|controlling|searchables|betterthirdperson|resourcepackoverrides|particular|infinite-music|drop_confirm|euphoria_patcher|musicnotification|advancementplaques" && \
+        EXCLUDE_MODS="modernfix|sodium|iris|continuity|immediatelyfast|moreculling|betterf3|zoomify|reeses-sodium-options|sodium-extra|sodiumoptionsapi|sodiumdynamiclights|entity_model_features|entity_texture_features|modmenu|betterbeds|mousetweaks|customsplashscreen|particlerain|brb|tooltipfix|controlling|searchables|betterthirdperson|resourcepackoverrides|particular|infinite-music|drop_confirm|euphoria_patcher|musicnotification|advancementplaques|structurify|fabric-renderer-api-v1|fabric-model-loading-api-v1|fabric-keybindings-v0|fabric-client-tags-api-v1|fabric-screen-api-v1|fabric-renderer-indigo|fabric-blockrenderlayer-v1|fabric-renderer-registries-v1|fabric-rendering-v0|fabric-sound-api-v1|fabric-rendering-v1|fabric-key-binding-api-v1|disable_custom_worlds_advice" && \
         jq -c '.files[] | select(.path | startswith("mods/")) | {path: .path, url: .downloads[0]}' modrinth.index.json | \
         while IFS= read -r line; do \
             path=$(echo "$line" | jq -r '.path') && \
