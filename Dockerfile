@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v2
+ARG CACHE_BUST=v3
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -30,13 +30,23 @@ RUN echo "=== MODPACK CONTENTS ===" && ls -la /build/modpack/
 # Create server directory structure
 RUN mkdir -p /build/server/mods /build/server/config
 
-# Copy mods directly from modpack
-RUN if [ -d "/build/modpack/mods" ]; then \
-        echo "=== COPYING MODS FROM MODPACK ===" && \
-        cp -r /build/modpack/mods/* /build/server/mods/ && \
-        echo "Mods copied: $(ls /build/server/mods/ | wc -l)"; \
+# Process modrinth.index.json to download mods
+RUN cd /build/modpack && \
+    if [ -f "modrinth.index.json" ]; then \
+        echo "=== FOUND MODRINTH INDEX ===" && \
+        echo "Processing mod downloads from index..." && \
+        jq -c '.files[] | select(.path | startswith("mods/")) | {path: .path, url: .downloads[0]}' modrinth.index.json | \
+        while IFS= read -r line; do \
+            path=$(echo "$line" | jq -r '.path') && \
+            url=$(echo "$line" | jq -r '.url') && \
+            filename=$(basename "$path") && \
+            echo "Downloading: $filename" && \
+            mkdir -p "/build/server/$(dirname "$path")" && \
+            wget -q --timeout=30 "$url" -O "/build/server/$path" || echo "Failed: $filename"; \
+        done && \
+        echo "Mod download complete. Found: $(ls /build/server/mods/ | wc -l) mods"; \
     else \
-        echo "No mods folder found in modpack"; \
+        echo "ERROR: No modrinth.index.json found!"; \
     fi
 
 # Copy config files from modpack  
@@ -60,9 +70,9 @@ RUN echo "=== FINAL VERIFICATION ===" && \
         echo "✓ SUCCESS: Found $mod_count mods!" && \
         ls /build/server/mods/ | head -10; \
     else \
-        echo "✗ No mods found. Checking modpack structure:" && \
-        find /build/modpack -type d -name "*mod*" && \
-        find /build/modpack -name "*.jar" | head -5; \
+        echo "✗ No mods found. Debug info:" && \
+        ls -la /build/modpack/ && \
+        head -20 /build/modpack/modrinth.index.json 2>/dev/null || echo "No index file"; \
     fi
 
 # Production stage
