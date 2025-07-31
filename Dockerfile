@@ -5,15 +5,15 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v3
+ARG CACHE_BUST=v4
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
     apt-get install -y wget curl unzip jq && \
     rm -rf /var/lib/apt/lists/*
 
-# Download Fabric installer
-RUN wget -O fabric-installer.jar https://meta.fabricmc.net/v2/versions/loader/1.21.1/0.16.9/1.0.1/server/jar
+# Download Fabric installer (updated to latest version)
+RUN wget -O fabric-installer.jar https://meta.fabricmc.net/v2/versions/loader/1.21.1/0.16.14/1.0.1/server/jar
 
 # Download Cobbleverse modpack
 RUN wget -O cobbleverse.mrpack "https://cdn.modrinth.com/data/Jkb29YJU/versions/CJgxxWjP/COBBLEVERSE%201.5.2.mrpack"
