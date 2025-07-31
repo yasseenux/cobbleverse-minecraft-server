@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v8
+ARG CACHE_BUST=v9
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -172,6 +172,8 @@ exec java -Xms${MIN_RAM:-2G} -Xmx${MAX_RAM:-4G} \\\n\
     -XX:MaxTenuringThreshold=1 \\\n\
     -Dusing.aikars.flags=https://mcflags.emc.gs \\\n\
     -Daikars.new.flags=true \\\n\
+    -Dfabric.side=server \\\n\
+    -Dnet.fabricmc.loader.entrypoint.server.side=server \\\n\
     -jar server.jar --nogui' > start.sh && chmod +x start.sh
 
 # Expose the default Minecraft port
