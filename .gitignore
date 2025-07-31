@@ -1,0 +1,49 @@
+# Docker
+Dockerfile
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Minecraft server files
+world/
+crash-reports/
+mods/
+config/
+server.properties
+eula.txt
+ops.json
+whitelist.json
+banned-players.json
+banned-ips.json
+usercache.json
+usernamecache.json
+
+# Modpack files
+*.mrpack
+*.zip
+
+# Railway
+.railway/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+target/
+build/
+dist/
+
+# Environment
+.env
+.env.local
+
+# Backup files
+backup/
+*.backup

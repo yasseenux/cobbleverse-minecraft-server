@@ -1,0 +1,38 @@
+# Railway Template Configuration
+name: "Cobbleverse Minecraft Server"
+description: "A Dockerized Minecraft server running the Cobbleverse modpack v1.5.2 with Fabric 1.21.1, featuring 1015+ Pokemon and complete adventure experience."
+image: "https://cdn.modrinth.com/data/Jkb29YJU/581ecf54530972afb18a04660afd820f2f24f6c7.png"
+
+services:
+  - name: "cobbleverse-server"
+    source:
+      repo: "$REPO_URL"
+    variables:
+      PORT: 25565
+      MAX_PLAYERS: 20
+      ONLINE_MODE: true
+      MIN_RAM: 2G
+      MAX_RAM: 4G
+    domains:
+      - "$RAILWAY_PROJECT_NAME.railway.app"
+    
+plugins:
+  - name: "redis"
+    plan: "hobby"
+    
+variables:
+  - name: "PORT"
+    description: "The port the server will run on"
+    default: "25565"
+  - name: "MAX_PLAYERS"
+    description: "Maximum number of players allowed"
+    default: "20"
+  - name: "ONLINE_MODE"
+    description: "Enable Mojang authentication (true/false)"
+    default: "true"
+  - name: "MIN_RAM"
+    description: "Minimum RAM allocation"
+    default: "2G"
+  - name: "MAX_RAM"
+    description: "Maximum RAM allocation"
+    default: "4G"

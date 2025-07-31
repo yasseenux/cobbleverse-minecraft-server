@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  cobbleverse-server:
+    build: .
+    container_name: cobbleverse-minecraft
+    ports:
+      - "25565:25565"
+    environment:
+      # Server Configuration
+      - PORT=25565
+      - MAX_PLAYERS=20
+      - ONLINE_MODE=true
+      
+      # Memory Configuration (adjust based on Railway plan)
+      - MIN_RAM=2G
+      - MAX_RAM=4G
+      
+      # Optional: World seed
+      - WORLD_SEED=
+      
+    volumes:
+      # Persistent world data
+      - minecraft_world:/minecraft/world
+      - minecraft_config:/minecraft/config
+      - minecraft_logs:/minecraft/logs
+      
+    restart: unless-stopped
+    
+    # Resource limits (adjust based on Railway plan)
+    deploy:
+      resources:
+        limits:
+          memory: 5G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+volumes:
+  minecraft_world:
+    driver: local
+  minecraft_config:
+    driver: local
+  minecraft_logs:
+    driver: local
