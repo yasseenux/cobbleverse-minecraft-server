@@ -1,6 +1,5 @@
-# Docker
-Dockerfile
-.dockerignore
+# Docker build artifacts (but keep Dockerfile)
+# .dockerignore - keep this too
 
 # Logs
 logs/
