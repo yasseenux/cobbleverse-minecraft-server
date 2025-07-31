@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim as builder
 WORKDIR /build
 
 # Cache buster - force rebuild
-ARG CACHE_BUST=v10
+ARG CACHE_BUST=v11
 
 # Install required packages including jq for JSON parsing
 RUN apt-get update && \
@@ -123,7 +123,7 @@ echo "eula=true" > eula.txt\n\
 if [ ! -f server.properties ]; then\n\
     echo "Creating default server.properties..."\n\
     cat > server.properties << EOF\n\
-server-port=${PORT:-25565}\n\
+server-port=8080\n\
 gamemode=survival\n\
 difficulty=normal\n\
 allow-flight=true\n\
@@ -176,12 +176,12 @@ exec java -Xms${MIN_RAM:-2G} -Xmx${MAX_RAM:-4G} \\\n\
     -Dnet.fabricmc.loader.entrypoint.server.side=server \\\n\
     -jar server.jar --nogui' > start.sh && chmod +x start.sh
 
-# Expose the default Minecraft port
-EXPOSE 25565
+# Expose port 8080 for Railway
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:25565 || exit 1
+    CMD curl -f http://localhost:8080 || exit 1
 
 # Start the server
 CMD ["./start.sh"]
